@@ -301,6 +301,32 @@ def health():
     return jsonify({'status': 'ok'}), 200
 
 
+# ─────────────────────────────────────────────
+# Schema bootstrap (runs once at startup)
+# schema.sql is idempotent — CREATE TABLE IF NOT EXISTS and ON CONFLICT DO NOTHING
+# so it's safe to run on every cold start.
+# ─────────────────────────────────────────────
+
+def bootstrap_schema():
+    schema_path = os.path.join(os.path.dirname(__file__), 'schema.sql')
+    if not os.path.exists(schema_path):
+        return
+    try:
+        conn = get_db()
+        cur = conn.cursor()
+        with open(schema_path, 'r', encoding='utf-8') as f:
+            cur.execute(f.read())
+        conn.commit()
+        cur.close()
+        conn.close()
+        print('[bootstrap] schema applied')
+    except Exception as e:
+        print(f'[bootstrap] skipped: {e}')
+
+
+bootstrap_schema()
+
+
 if __name__ == '__main__':
     debug_mode = os.environ.get('FLASK_DEBUG', 'false').lower() == 'true'
     # Hosts inject a $PORT env var; fall back to 5000 for local dev.
