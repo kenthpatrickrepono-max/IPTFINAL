@@ -1,0 +1,25 @@
+# Render Blueprint for SpendSmart — free web service only.
+# The PostgreSQL database is hosted separately on Aiven (free plan), so this
+# blueprint does NOT provision a Render database. After Render creates the
+# service, paste your Aiven DATABASE_URL into the env var (see DEPLOY.md).
+# Deploy via: Render Dashboard -> New -> Blueprint -> point at this repo.
+# Docs: https://render.com/docs/blueprint-spec
+
+services:
+  - type: web
+    name: spendsmart-api
+    runtime: python
+    plan: free
+    rootDir: SpendSmart/backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app --bind 0.0.0.0:$PORT
+    healthCheckPath: /api/health
+    envVars:
+      # Set manually in the Render dashboard: paste the Aiven Service URI.
+      # It already includes ?sslmode=require (keep that query param).
+      - key: DATABASE_URL
+        sync: false
+      - key: SECRET_KEY
+        generateValue: true
+      - key: FLASK_DEBUG
+        value: "false"

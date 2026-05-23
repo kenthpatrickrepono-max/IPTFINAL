@@ -1,0 +1,100 @@
+GAMMA AI PROMPT — SpendSmart Presentation
+==========================================
+
+Create a professional, modern presentation (10–12 slides) for a mobile app called "SpendSmart – Personal Expense Tracker". Use a clean fintech-style design with a blue/green color palette, minimal icons, and clear bullet points. The audience is a Mobile App Development course panel evaluating a final project.
+
+Use the following content as the basis for the slides:
+
+---
+
+SLIDE 1 — TITLE
+- Title: SpendSmart
+- Subtitle: A Personal Expense Tracker Mobile App
+- Tagline: "Track. Save. Spend Smart."
+- Course: Mobile App Development – Final Project
+
+SLIDE 2 — PROBLEM STATEMENT
+- Many people struggle to keep track of where their money goes each month.
+- Manually logging expenses in notebooks or spreadsheets is tedious and easy to abandon.
+- Existing finance apps are often bloated with features users don't need.
+- Need: a simple, fast, mobile-first way to log and review daily spending.
+
+SLIDE 3 — SOLUTION OVERVIEW
+- SpendSmart is a lightweight Android app that lets users log expenses in seconds.
+- Categorizes spending into 7 essential categories: Food, Transport, Shopping, Entertainment, Health, Bills, Other.
+- Secure JWT-based login keeps each user's financial data private.
+- A clean dashboard shows total spending at a glance.
+
+SLIDE 4 — KEY FEATURES
+- User registration and login with hashed passwords
+- JWT session authentication for secure API access
+- Add expenses with amount, category, description, and date
+- View all expenses with a running total spending summary
+- Delete and edit existing expenses
+- 7 pre-built categories to remove friction when logging
+
+SLIDE 5 — TECH STACK
+- Mobile: Android Studio (Java)
+- Backend: Python Flask REST API
+- Database: MySQL
+- Authentication: JWT (JSON Web Tokens)
+- Networking: Retrofit 2 + OkHttp
+- Architecture: Client–Server with REST API
+
+SLIDE 6 — SYSTEM ARCHITECTURE
+- Three-tier architecture diagram:
+  [Android App] ⇄ [Flask REST API] ⇄ [MySQL Database]
+- Android sends HTTPS requests with JWT tokens via Retrofit.
+- Flask validates tokens, processes business logic, and queries MySQL.
+- MySQL stores users, categories, and expenses in normalized tables.
+
+SLIDE 7 — APP SCREENS / USER FLOW
+- Login Screen → enter email and password
+- Register Screen → create a new account
+- Dashboard → list of expenses with total spending
+- Add Expense Screen → amount, category spinner, description, date picker
+- Flow: Register → Login → Dashboard → Add/Delete Expenses → Logout
+
+SLIDE 8 — API ENDPOINTS
+- POST /api/register — Register a new user
+- POST /api/login — Login and receive JWT token
+- GET /api/categories — List all expense categories
+- GET /api/expenses — Retrieve current user's expenses
+- POST /api/expenses — Add a new expense
+- PUT /api/expenses/<id> — Update an expense
+- DELETE /api/expenses/<id> — Remove an expense
+- All protected endpoints require: Authorization: Bearer <token>
+
+SLIDE 9 — SECURITY
+- Passwords hashed before being stored (never in plain text)
+- JWT tokens issued on login and verified on every protected request
+- Token stored locally on the device via a SessionManager class
+- API rejects requests with missing or invalid tokens
+
+SLIDE 10 — CHALLENGES & LEARNINGS
+- Configuring the Android emulator to reach a local Flask server (10.0.2.2 vs real device IP)
+- Handling JWT token lifecycle and unauthorized responses gracefully
+- Designing a clean RecyclerView for the expense list
+- Coordinating backend, frontend, and integration work across team members using Git
+
+SLIDE 11 — FUTURE IMPROVEMENTS
+- Monthly spending charts and analytics
+- Budget limits and notifications when nearing the limit
+- Cloud sync and multi-device support
+- Export expenses to CSV / PDF
+- Dark mode and biometric login
+
+SLIDE 12 — THANK YOU / Q&A
+- Team members and roles
+- "Thank you — Questions?"
+- Optional: GitHub repository link
+
+---
+
+DESIGN INSTRUCTIONS FOR GAMMA:
+- Style: modern, minimalist, fintech / startup aesthetic
+- Color palette: deep blue, mint green, white, light gray accents
+- Use icons for each feature (wallet, lock, chart, categories, etc.)
+- Include simple diagrams for the architecture slide and the user flow slide
+- Keep text concise — bullet points only, no long paragraphs
+- Use one strong visual or icon per slide
