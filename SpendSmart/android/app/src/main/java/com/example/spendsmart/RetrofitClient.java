@@ -10,7 +10,7 @@ public class RetrofitClient {
     // ⚠️ REPLACE this with the HTTPS URL of your deployed Render web service.
     // After deploying (see SpendSmart/backend/DEPLOY.md) Render gives you a URL
     // like https://spendsmart-api.onrender.com — keep the trailing slash.
-    private static final String BASE_URL = "https://spendsmart-api.onrender.com/";
+    private static final String BASE_URL = "https://spendsmart-api-uz2n.onrender.com/";
 
     // Local testing alternative (Flask running on your machine):
     //   - Android emulator:  "http://10.0.2.2:5000/"
