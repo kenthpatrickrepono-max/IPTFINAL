@@ -35,3 +35,7 @@ venv/
 ENV/
 env.bak/
 venv.bak/
+
+# SpendSmart local SQLite fallback DB
+SpendSmart/backend/spendsmart_local.db
+SpendSmart/backend/spendsmart_local.db-journal

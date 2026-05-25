@@ -1,47 +1,17 @@
 import os
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import psycopg2
-from psycopg2.extras import RealDictCursor
 import bcrypt
 import jwt
 import datetime
 from functools import wraps
 from config import Config
+import db  # unified DB abstraction (postgres or sqlite fallback)
 
 app = Flask(__name__)
 app.config.from_object(Config)
 
 CORS(app)
-
-# ─────────────────────────────────────────────
-# PostgreSQL connection helper
-# ─────────────────────────────────────────────
-
-def _db_url_with_ssl():
-    """Return DATABASE_URL, ensuring SSL is requested for managed providers.
-
-    Aiven's free PostgreSQL plan requires SSL/TLS. The Service URI Aiven
-    gives you normally already ends with `?sslmode=require`, which psycopg2
-    honours automatically. As a safety net, if no sslmode is present we
-    append `sslmode=require` so the app can never silently connect
-    insecurely. Plain-local URLs (localhost / 127.0.0.1) are left untouched
-    so local development without SSL keeps working."""
-    url = Config.DATABASE_URL
-    if 'sslmode=' in url:
-        return url
-    if 'localhost' in url or '127.0.0.1' in url:
-        return url
-    separator = '&' if '?' in url else '?'
-    return f'{url}{separator}sslmode=require'
-
-
-def get_db():
-    """Open a new PostgreSQL connection.
-    psycopg2 also uses %s placeholders, so existing queries port directly.
-    RealDictCursor returns rows as dicts (like MySQL's DictCursor)."""
-    conn = psycopg2.connect(_db_url_with_ssl(), cursor_factory=RealDictCursor)
-    return conn
 
 
 # ─────────────────────────────────────────────
@@ -90,14 +60,14 @@ def register():
 
     password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
-    conn = get_db()
+    conn = db.get_conn()
     try:
         cur = conn.cursor()
-        cur.execute(
+        user_id = db.insert_returning_id(
+            cur,
             'INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s) RETURNING id',
-            (username, email, password_hash)
+            (username, email, password_hash),
         )
-        user_id = cur.fetchone()['id']
         conn.commit()
         cur.close()
     except Exception:
@@ -123,9 +93,9 @@ def login():
     if not email or not password:
         return jsonify({'error': 'Email and password are required'}), 400
 
-    conn = get_db()
+    conn = db.get_conn()
     cur = conn.cursor()
-    cur.execute('SELECT * FROM users WHERE email = %s', (email,))
+    cur.execute(db.sql('SELECT * FROM users WHERE email = %s'), (email,))
     user = cur.fetchone()
     cur.close()
     conn.close()
@@ -148,12 +118,14 @@ def login():
 @app.route('/api/categories', methods=['GET'])
 @token_required
 def get_categories(current_user_id):
-    conn = get_db()
+    conn = db.get_conn()
     cur = conn.cursor()
-    cur.execute('SELECT * FROM categories ORDER BY name')
-    categories = cur.fetchall()
+    cur.execute(db.sql('SELECT * FROM categories ORDER BY name'))
+    rows = cur.fetchall()
     cur.close()
     conn.close()
+    # Normalise to plain dicts so jsonify handles sqlite3.Row uniformly.
+    categories = [dict(r) for r in rows]
     return jsonify({'categories': categories}), 200
 
 
@@ -164,9 +136,9 @@ def get_categories(current_user_id):
 @app.route('/api/expenses', methods=['GET'])
 @token_required
 def get_expenses(current_user_id):
-    conn = get_db()
+    conn = db.get_conn()
     cur = conn.cursor()
-    cur.execute('''
+    cur.execute(db.sql('''
         SELECT e.id, e.amount, e.description, e.expense_date,
                c.name AS category, e.created_at,
                SUM(e.amount) OVER () AS total
@@ -174,7 +146,7 @@ def get_expenses(current_user_id):
         JOIN categories c ON e.category_id = c.id
         WHERE e.user_id = %s
         ORDER BY e.expense_date DESC, e.created_at DESC
-    ''', (current_user_id,))
+    '''), (current_user_id,))
     rows = cur.fetchall()
     cur.close()
     conn.close()
@@ -211,14 +183,14 @@ def add_expense(current_user_id):
     except ValueError:
         return jsonify({'error': 'amount must be a positive number'}), 400
 
-    conn = get_db()
+    conn = db.get_conn()
     cur = conn.cursor()
-    cur.execute(
+    expense_id = db.insert_returning_id(
+        cur,
         'INSERT INTO expenses (user_id, category_id, amount, description, expense_date) '
         'VALUES (%s, %s, %s, %s, %s) RETURNING id',
-        (current_user_id, category_id, amount, description, expense_date)
+        (current_user_id, category_id, amount, description, expense_date),
     )
-    expense_id = cur.fetchone()['id']
     conn.commit()
     cur.close()
     conn.close()
@@ -229,9 +201,10 @@ def add_expense(current_user_id):
 @app.route('/api/expenses/<int:expense_id>', methods=['DELETE'])
 @token_required
 def delete_expense(current_user_id, expense_id):
-    conn = get_db()
+    conn = db.get_conn()
     cur = conn.cursor()
-    cur.execute('SELECT id FROM expenses WHERE id = %s AND user_id = %s', (expense_id, current_user_id))
+    cur.execute(db.sql('SELECT id FROM expenses WHERE id = %s AND user_id = %s'),
+                (expense_id, current_user_id))
     expense = cur.fetchone()
 
     if not expense:
@@ -239,7 +212,7 @@ def delete_expense(current_user_id, expense_id):
         conn.close()
         return jsonify({'error': 'Expense not found'}), 404
 
-    cur.execute('DELETE FROM expenses WHERE id = %s', (expense_id,))
+    cur.execute(db.sql('DELETE FROM expenses WHERE id = %s'), (expense_id,))
     conn.commit()
     cur.close()
     conn.close()
@@ -251,9 +224,10 @@ def delete_expense(current_user_id, expense_id):
 @token_required
 def update_expense(current_user_id, expense_id):
     data = request.get_json()
-    conn = get_db()
+    conn = db.get_conn()
     cur = conn.cursor()
-    cur.execute('SELECT id FROM expenses WHERE id = %s AND user_id = %s', (expense_id, current_user_id))
+    cur.execute(db.sql('SELECT id FROM expenses WHERE id = %s AND user_id = %s'),
+                (expense_id, current_user_id))
     expense = cur.fetchone()
 
     if not expense:
@@ -280,11 +254,11 @@ def update_expense(current_user_id, expense_id):
         conn.close()
         return jsonify({'error': 'amount must be a positive number'}), 400
 
-    cur.execute('''
+    cur.execute(db.sql('''
         UPDATE expenses
         SET amount = %s, category_id = %s, description = %s, expense_date = %s
         WHERE id = %s AND user_id = %s
-    ''', (amount, category_id, description, expense_date, expense_id, current_user_id))
+    '''), (amount, category_id, description, expense_date, expense_id, current_user_id))
     conn.commit()
     cur.close()
     conn.close()
@@ -298,33 +272,14 @@ def update_expense(current_user_id, expense_id):
 
 @app.route('/api/health', methods=['GET'])
 def health():
-    return jsonify({'status': 'ok'}), 200
+    return jsonify({'status': 'ok', 'backend': db.BACKEND}), 200
 
 
 # ─────────────────────────────────────────────
 # Schema bootstrap (runs once at startup)
-# schema.sql is idempotent — CREATE TABLE IF NOT EXISTS and ON CONFLICT DO NOTHING
-# so it's safe to run on every cold start.
 # ─────────────────────────────────────────────
 
-def bootstrap_schema():
-    schema_path = os.path.join(os.path.dirname(__file__), 'schema.sql')
-    if not os.path.exists(schema_path):
-        return
-    try:
-        conn = get_db()
-        cur = conn.cursor()
-        with open(schema_path, 'r', encoding='utf-8') as f:
-            cur.execute(f.read())
-        conn.commit()
-        cur.close()
-        conn.close()
-        print('[bootstrap] schema applied')
-    except Exception as e:
-        print(f'[bootstrap] skipped: {e}')
-
-
-bootstrap_schema()
+db.bootstrap()
 
 
 if __name__ == '__main__':
