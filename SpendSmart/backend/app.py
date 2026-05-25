@@ -61,19 +61,34 @@ def register():
     password_hash = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt()).decode('utf-8')
 
     conn = db.get_conn()
+    cur = conn.cursor()
     try:
-        cur = conn.cursor()
         user_id = db.insert_returning_id(
             cur,
             'INSERT INTO users (username, email, password_hash) VALUES (%s, %s, %s) RETURNING id',
             (username, email, password_hash),
         )
         conn.commit()
-        cur.close()
-    except Exception:
+    except Exception as exc:
+        # Roll back and check whether this looks like a uniqueness violation
+        # vs. a real bug. We surface only the user-actionable conflict; everything
+        # else propagates so it isn't silently swallowed.
         conn.rollback()
-        return jsonify({'error': 'Username or email already exists'}), 409
+        msg = str(exc).lower()
+        is_unique_conflict = (
+            'unique' in msg
+            or 'duplicate' in msg
+            or 'users_username_key' in msg
+            or 'users_email_key' in msg
+        )
+        if is_unique_conflict:
+            return jsonify({'error': 'Username or email already exists'}), 409
+        # Re-raise non-uniqueness errors so they show up in logs instead of
+        # masquerading as a duplicate-account error.
+        app.logger.exception('register() failed unexpectedly')
+        return jsonify({'error': 'Registration failed'}), 500
     finally:
+        cur.close()
         conn.close()
 
     token = jwt.encode({
@@ -272,7 +287,30 @@ def update_expense(current_user_id, expense_id):
 
 @app.route('/api/health', methods=['GET'])
 def health():
-    return jsonify({'status': 'ok', 'backend': db.BACKEND}), 200
+    # Actually probe the DB so the endpoint reflects current reachability,
+    # not just whichever backend was chosen at process start.
+    db_ok = True
+    db_error = None
+    try:
+        conn = db.get_conn()
+        cur = conn.cursor()
+        cur.execute(db.sql('SELECT 1'))
+        cur.fetchone()
+        cur.close()
+        conn.close()
+    except Exception as exc:
+        db_ok = False
+        db_error = exc.__class__.__name__
+
+    status_code = 200 if db_ok else 503
+    payload = {
+        'status': 'ok' if db_ok else 'degraded',
+        'backend': db.BACKEND,
+        'db_reachable': db_ok,
+    }
+    if db_error:
+        payload['db_error'] = db_error
+    return jsonify(payload), status_code
 
 
 # ─────────────────────────────────────────────
