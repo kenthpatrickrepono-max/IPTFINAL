@@ -6,6 +6,7 @@ import android.view.View;
 import android.widget.*;
 import androidx.appcompat.app.AppCompatActivity;
 import java.util.*;
+import androidx.annotation.NonNull;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -17,7 +18,7 @@ public class AddExpenseActivity extends AppCompatActivity {
     private Button btnSave;
     private ProgressBar progressBar;
     private SessionManager sessionManager;
-    private List<Category> categoryList = new ArrayList<>();
+    private final List<Category> categoryList = new ArrayList<>();
     private int selectedCategoryId = -1;
 
     @Override
@@ -36,14 +37,14 @@ public class AddExpenseActivity extends AppCompatActivity {
 
         // Set today's date as default
         Calendar cal = Calendar.getInstance();
-        etDate.setText(String.format("%04d-%02d-%02d",
+        etDate.setText(String.format(Locale.US, "%04d-%02d-%02d",
                 cal.get(Calendar.YEAR), cal.get(Calendar.MONTH) + 1, cal.get(Calendar.DAY_OF_MONTH)));
 
         // Date picker
         etDate.setOnClickListener(v -> {
             Calendar c = Calendar.getInstance();
             new DatePickerDialog(this, (dp, y, m, d) ->
-                    etDate.setText(String.format("%04d-%02d-%02d", y, m + 1, d)),
+                    etDate.setText(String.format(Locale.US, "%04d-%02d-%02d", y, m + 1, d)),
                     c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DAY_OF_MONTH)
             ).show();
         });
@@ -62,7 +63,7 @@ public class AddExpenseActivity extends AppCompatActivity {
         RetrofitClient.getApiService().getCategories(sessionManager.getToken())
                 .enqueue(new Callback<CategoriesResponse>() {
                     @Override
-                    public void onResponse(Call<CategoriesResponse> call, Response<CategoriesResponse> response) {
+                    public void onResponse(@NonNull Call<CategoriesResponse> call, @NonNull Response<CategoriesResponse> response) {
                         if (response.isSuccessful() && response.body() != null) {
                             categoryList.clear();
                             categoryList.addAll(response.body().categories);
@@ -87,7 +88,7 @@ public class AddExpenseActivity extends AppCompatActivity {
                     }
 
                     @Override
-                    public void onFailure(Call<CategoriesResponse> call, Throwable t) {
+                    public void onFailure(@NonNull Call<CategoriesResponse> call, @NonNull Throwable t) {
                         Toast.makeText(AddExpenseActivity.this, "Failed to load categories", Toast.LENGTH_SHORT).show();
                     }
                 });
@@ -124,7 +125,7 @@ public class AddExpenseActivity extends AppCompatActivity {
         RetrofitClient.getApiService().addExpense(sessionManager.getToken(), body)
                 .enqueue(new Callback<MessageResponse>() {
                     @Override
-                    public void onResponse(Call<MessageResponse> call, Response<MessageResponse> response) {
+                    public void onResponse(@NonNull Call<MessageResponse> call, @NonNull Response<MessageResponse> response) {
                         progressBar.setVisibility(View.GONE);
                         btnSave.setEnabled(true);
                         if (response.isSuccessful()) {
@@ -136,7 +137,7 @@ public class AddExpenseActivity extends AppCompatActivity {
                     }
 
                     @Override
-                    public void onFailure(Call<MessageResponse> call, Throwable t) {
+                    public void onFailure(@NonNull Call<MessageResponse> call, @NonNull Throwable t) {
                         progressBar.setVisibility(View.GONE);
                         btnSave.setEnabled(true);
                         Toast.makeText(AddExpenseActivity.this, "Connection error", Toast.LENGTH_SHORT).show();

@@ -8,6 +8,7 @@ import android.widget.TextView;
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 import java.util.List;
+import java.util.Locale;
 
 public class ExpenseAdapter extends RecyclerView.Adapter<ExpenseAdapter.ViewHolder> {
 
@@ -34,15 +35,15 @@ public class ExpenseAdapter extends RecyclerView.Adapter<ExpenseAdapter.ViewHold
     @Override
     public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
         Expense expense = expenses.get(position);
-        holder.tvAmount.setText(String.format("$%.2f", expense.amount));
+        holder.tvAmount.setText(String.format(Locale.US, "$%.2f", expense.amount));
         holder.tvCategory.setText(expense.category);
         holder.tvDescription.setText(expense.description == null || expense.description.isEmpty()
                 ? "No description" : expense.description);
         holder.tvDate.setText(expense.expenseDate);
 
         holder.btnDelete.setOnClickListener(v -> {
-            int pos = holder.getAdapterPosition();
-            if (pos != RecyclerView.NO_ID) {
+            int pos = holder.getBindingAdapterPosition();
+            if (pos != RecyclerView.NO_POSITION) {
                 listener.onDelete(expense, pos);
             }
         });

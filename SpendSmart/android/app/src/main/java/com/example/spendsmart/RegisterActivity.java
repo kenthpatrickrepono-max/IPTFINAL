@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.*;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import java.util.HashMap;
 import java.util.Map;
@@ -62,23 +63,24 @@ public class RegisterActivity extends AppCompatActivity {
 
         RetrofitClient.getApiService().register(body).enqueue(new Callback<AuthResponse>() {
             @Override
-            public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
+            public void onResponse(@NonNull Call<AuthResponse> call, @NonNull Response<AuthResponse> response) {
                 progressBar.setVisibility(View.GONE);
                 btnRegister.setEnabled(true);
 
                 if (response.isSuccessful() && response.body() != null) {
                     AuthResponse auth = response.body();
                     sessionManager.saveSession(auth.token, auth.username);
-                    Intent intent = new Intent(RegisterActivity.this, DashboardActivity.class);
+                    Intent intent = new Intent(RegisterActivity.this, MainActivity.class);
                     intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
                     startActivity(intent);
+                    finish();
                 } else {
                     Toast.makeText(RegisterActivity.this, "Registration failed. Username or email may already exist.", Toast.LENGTH_LONG).show();
                 }
             }
 
             @Override
-            public void onFailure(Call<AuthResponse> call, Throwable t) {
+            public void onFailure(@NonNull Call<AuthResponse> call, @NonNull Throwable t) {
                 progressBar.setVisibility(View.GONE);
                 btnRegister.setEnabled(true);
                 Toast.makeText(RegisterActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_LONG).show();

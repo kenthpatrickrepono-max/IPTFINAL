@@ -4,6 +4,7 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.*;
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 import java.util.HashMap;
 import java.util.Map;
@@ -26,9 +27,9 @@ public class LoginActivity extends AppCompatActivity {
 
         sessionManager = new SessionManager(this);
 
-        // If already logged in, go to Dashboard
+        // If already logged in, go to main host
         if (sessionManager.isLoggedIn()) {
-            startActivity(new Intent(this, DashboardActivity.class));
+            startActivity(new Intent(this, MainActivity.class));
             finish();
             return;
         }
@@ -62,14 +63,14 @@ public class LoginActivity extends AppCompatActivity {
 
         RetrofitClient.getApiService().login(body).enqueue(new Callback<AuthResponse>() {
             @Override
-            public void onResponse(Call<AuthResponse> call, Response<AuthResponse> response) {
+            public void onResponse(@NonNull Call<AuthResponse> call, @NonNull Response<AuthResponse> response) {
                 progressBar.setVisibility(View.GONE);
                 btnLogin.setEnabled(true);
 
                 if (response.isSuccessful() && response.body() != null) {
                     AuthResponse auth = response.body();
                     sessionManager.saveSession(auth.token, auth.username);
-                    startActivity(new Intent(LoginActivity.this, DashboardActivity.class));
+                    startActivity(new Intent(LoginActivity.this, MainActivity.class));
                     finish();
                 } else {
                     Toast.makeText(LoginActivity.this, "Invalid email or password", Toast.LENGTH_SHORT).show();
@@ -77,7 +78,7 @@ public class LoginActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onFailure(Call<AuthResponse> call, Throwable t) {
+            public void onFailure(@NonNull Call<AuthResponse> call, @NonNull Throwable t) {
                 progressBar.setVisibility(View.GONE);
                 btnLogin.setEnabled(true);
                 Toast.makeText(LoginActivity.this, "Connection error: " + t.getMessage(), Toast.LENGTH_LONG).show();

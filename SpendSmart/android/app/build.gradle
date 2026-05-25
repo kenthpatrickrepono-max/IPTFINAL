@@ -39,4 +39,14 @@ dependencies {
 
     // OkHttp logging interceptor
     implementation 'com.squareup.okhttp3:logging-interceptor:4.12.0'
+
+    testImplementation 'junit:junit:4.13.2'
+}
+
+tasks.register("unitTestClasses") {
+    dependsOn(tasks.matching { it.name.endsWith("UnitTestSources") })
+}
+
+tasks.register("androidTestClasses") {
+    dependsOn(tasks.matching { it.name.endsWith("AndroidTestSources") })
 }

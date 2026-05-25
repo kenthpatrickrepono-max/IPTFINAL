@@ -22,6 +22,7 @@
         </activity>
 
         <activity android:name=".RegisterActivity" android:exported="false"/>
+        <activity android:name=".MainActivity" android:exported="false"/>
         <activity android:name=".DashboardActivity" android:exported="false"/>
         <activity android:name=".AddExpenseActivity" android:exported="false"/>
 

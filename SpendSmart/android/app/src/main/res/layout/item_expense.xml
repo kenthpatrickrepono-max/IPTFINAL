@@ -76,7 +76,7 @@
             android:layout_height="36dp"
             android:src="@android:drawable/ic_menu_delete"
             android:background="?attr/selectableItemBackgroundBorderless"
-            android:tint="#EF5350"
+            app:tint="#EF5350"
             android:contentDescription="Delete expense"/>
 
     </LinearLayout>
