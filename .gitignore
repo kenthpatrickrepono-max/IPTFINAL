@@ -7,7 +7,6 @@
 .cxx
 local.properties
 .idea/
-.claude/
 *.iml
 *.iws
 .DS_Store
